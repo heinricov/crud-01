@@ -23,6 +23,12 @@ Select the Next.js (Monorepo) option.
 ❯   Next.js (Monorepo)
 ```
 
+after proses setup crash, you in project directory, and run:
+
+```bash
+pnpm install
+```
+
 To add components to your project, run the add command in the path of your app.
 
 ```bash
