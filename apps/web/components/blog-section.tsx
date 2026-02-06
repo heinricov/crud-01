@@ -58,6 +58,7 @@ export function BlogSection() {
             {items.map((post) => (
               <BlogCard
                 key={post.id}
+                id={post.id}
                 title={post.title}
                 content={post.content}
                 date={formatDate(post.createdAt)}

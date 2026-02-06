@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { BlogService } from './blog.service';
 import { CreateBlogDto } from './dto/create-blog.dto';
@@ -45,8 +46,8 @@ export class BlogController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    const b = await this.blogService.findOne(Number(id));
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const b = await this.blogService.findOne(id);
     return {
       statusCode: 200,
       message: 'OK',
@@ -79,8 +80,11 @@ export class BlogController {
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateBlogDto) {
-    const b = await this.blogService.update(Number(id), dto);
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateBlogDto,
+  ) {
+    const b = await this.blogService.update(id, dto);
     return {
       statusCode: 200,
       message: 'Blog diperbarui',
@@ -96,13 +100,13 @@ export class BlogController {
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    await this.blogService.remove(Number(id));
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    await this.blogService.remove(id);
     return {
       statusCode: 200,
       message: 'Blog dihapus',
       date: new Date().toISOString(),
-      data: { id: Number(id) },
+      data: { id },
     };
   }
 
