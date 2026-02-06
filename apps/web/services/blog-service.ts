@@ -44,7 +44,10 @@ class BlogService {
       baseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_BASE_URL;
   }
 
-  private async request<T>(path: string, init?: RequestInit): Promise<T> {
+  private async request<T>(
+    path: string,
+    init?: globalThis.RequestInit
+  ): Promise<T> {
     const res = await fetch(`${this.baseUrl}${path}`, {
       headers: {
         "Content-Type": "application/json",
