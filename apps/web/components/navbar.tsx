@@ -3,16 +3,11 @@
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { Moon, Sun, Menu, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export function Navbar() {
   const { theme, setTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -24,7 +19,7 @@ export function Navbar() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link href="/" className="text-xl font-bold text-foreground">
@@ -51,15 +46,17 @@ export function Navbar() {
             className="rounded-lg p-2 text-foreground transition-colors hover:bg-secondary"
             aria-label="Toggle theme"
           >
-            {mounted ? (
-              theme === "dark" ? (
-                <Sun className="h-5 w-5" />
-              ) : (
-                <Moon className="h-5 w-5" />
-              )
-            ) : (
-              <Sun className="h-5 w-5" />
-            )}
+            <span className="sr-only">Toggle theme</span>
+            <div className="relative h-5 w-5">
+              <Sun
+                className="absolute h-5 w-5 dark:hidden"
+                aria-hidden="true"
+              />
+              <Moon
+                className="absolute h-5 w-5 hidden dark:block"
+                aria-hidden="true"
+              />
+            </div>
           </button>
 
           {/* Mobile Menu Button */}
