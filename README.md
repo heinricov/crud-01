@@ -760,3 +760,192 @@ export default function Page() {
 - Jalankan aplikasi dengan perintah `pnpm run dev`
 - Buka browser dan akses `http://localhost:3000`
 - Periksa apakah halaman blog ditampilkan dengan benar
+
+## WEB : Connect to API
+
+1. Buat file service `services/blog-service.ts`
+
+```bash
+touch services/blog-service.ts
+```
+
+```typescript
+const DEFAULT_BASE_URL = "http://localhost:4000";
+
+type ID = number | string;
+
+export interface Blog {
+  id: number;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BaseResponse {
+  statusCode: number;
+  message: string;
+  date: string;
+}
+
+export interface ListResponse extends BaseResponse {
+  count: number;
+  updatedAt: string | null;
+  data: Blog[];
+}
+
+export interface OneResponse extends BaseResponse {
+  data: Blog;
+}
+
+export interface CreatePayload {
+  title: string;
+  content: string;
+}
+
+export interface UpdatePayload {
+  title?: string;
+  content?: string;
+}
+
+class BlogService {
+  private readonly baseUrl: string;
+
+  constructor(baseUrl?: string) {
+    this.baseUrl =
+      baseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_BASE_URL;
+  }
+
+  private async request<T>(path: string, init?: RequestInit): Promise<T> {
+    const res = await fetch(`${this.baseUrl}${path}`, {
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      ...init
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`HTTP ${res.status}: ${text}`);
+    }
+    return res.json() as Promise<T>;
+  }
+
+  async getAll(): Promise<ListResponse> {
+    return this.request<ListResponse>("/blogs");
+  }
+
+  async getById(id: ID): Promise<OneResponse> {
+    return this.request<OneResponse>(`/blogs/${id}`);
+  }
+
+  async create(payload: CreatePayload): Promise<OneResponse> {
+    return this.request<OneResponse>("/blogs", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async update(id: ID, payload: UpdatePayload): Promise<OneResponse> {
+    return this.request<OneResponse>(`/blogs/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async deleteById(id: ID): Promise<BaseResponse & { data: { id: number } }> {
+    return this.request<BaseResponse & { data: { id: number } }>(
+      `/blogs/${id}`,
+      {
+        method: "DELETE"
+      }
+    );
+  }
+
+  async deleteAll(): Promise<BaseResponse & { count: number }> {
+    return this.request<BaseResponse & { count: number }>("/blogs", {
+      method: "DELETE"
+    });
+  }
+}
+
+export const blogService = new BlogService();
+export default BlogService;
+```
+
+2. Update `components/blog-section.tsx` agar memanggil service `getBlogPosts`
+
+```typescript
+"use client";
+
+import { BlogCard } from "./blog-card";
+import { useEffect, useState } from "react";
+import { blogService, type Blog } from "../services/blog-service";
+
+function formatDate(date: string) {
+  return new Date(date).toLocaleString("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  });
+}
+
+export function BlogSection() {
+  const [items, setItems] = useState<Blog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    blogService
+      .getAll()
+      .then((res) => {
+        if (!cancelled) {
+          setItems(res.data);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err.message ?? "Gagal memuat data");
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <section className="py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-12">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-4">
+            Blog
+          </h2>
+          <p className="text-lg text-muted-foreground">
+            Content dibawah di ambil dari API yang sudah di buat di project ini.
+          </p>
+        </div>
+
+        {loading && <p className="text-muted-foreground">Memuat data…</p>}
+        {error && (
+          <p className="text-destructive">Terjadi kesalahan: {error}</p>
+        )}
+        {!loading && !error && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {items.map((post) => (
+              <BlogCard
+                key={post.id}
+                title={post.title}
+                content={post.content}
+                date={formatDate(post.createdAt)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+```
