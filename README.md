@@ -265,41 +265,52 @@ pnpm typeorm migration:show -d dist/database/typeormConfig.js
 
 ## API : Create Endpoint
 
-1. Create a new controller
-
-Create a new file `blog.controller.ts` in the `src/controllers` directory.
+1. Create a new resource, in this case, we will create a new resource called `blog`.
 
 ```bash
-mkdir src/controllers
-touch src/controllers/blog.controller.ts
+nest g resource blog --no-spec
+rm -rf src/blog/entities
 ```
+
+2. Update `blog.module.ts`
+
+Add the following code to `blog.module.ts`:
+
+```typescript
+import { Module } from "@nestjs/common";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { BlogController } from "./blog.controller";
+import { BlogService } from "./blog.service";
+import { Blog } from "./entities/blog.entity";
+
+@Module({
+  imports: [TypeOrmModule.forFeature([Blog])],
+  controllers: [BlogController],
+  providers: [BlogService]
+})
+export class BlogModule {}
+```
+
+3. Update `blog.controller.ts`
 
 Add the following code to `blog.controller.ts`:
 
 ```typescript
-import { Controller, Post, Body } from "@nestjs/common";
+import { Controller, Get } from "@nestjs/common";
 import { BlogService } from "./blog.service";
-import { CreateBlogDto } from "./dto/create-blog.dto";
 
 @Controller("blog")
 export class BlogController {
   constructor(private readonly blogService: BlogService) {}
 
-  @Post()
-  create(@Body() createBlogDto: CreateBlogDto) {
-    return this.blogService.create(createBlogDto);
+  @Get()
+  findAll() {
+    return this.blogService.findAll();
   }
 }
 ```
 
-2. Create a new service
-
-Create a new file `blog.service.ts` in the `src/services` directory.
-
-```bash
-mkdir src/services
-touch src/services/blog.service.ts
-```
+4. Update `blog.service.ts`
 
 Add the following code to `blog.service.ts`:
 
@@ -307,7 +318,6 @@ Add the following code to `blog.service.ts`:
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { CreateBlogDto } from "./dto/create-blog.dto";
 import { Blog } from "./entities/blog.entity";
 
 @Injectable()
@@ -317,33 +327,8 @@ export class BlogService {
     private readonly blogRepository: Repository<Blog>
   ) {}
 
-  create(createBlogDto: CreateBlogDto) {
-    return this.blogRepository.save(createBlogDto);
+  findAll() {
+    return this.blogRepository.find();
   }
-}
-```
-
-3. Create a new DTO
-
-Create a new file `create-blog.dto.ts` in the `src/dto` directory.
-
-```bash
-mkdir src/dto
-touch src/dto/create-blog.dto.ts
-```
-
-Add the following code to `create-blog.dto.ts`:
-
-```typescript
-import { IsNotEmpty, IsString } from "class-validator";
-
-export class CreateBlogDto {
-  @IsNotEmpty()
-  @IsString()
-  title: string;
-
-  @IsNotEmpty()
-  @IsString()
-  content: string;
 }
 ```
