@@ -158,3 +158,67 @@ You should see the following output:
 ```bash
 your aplikasi runing in http://localhost:4000
 ```
+
+## API : Create Entity
+
+1. Create a new entity
+
+Create a new file `blog.entity.ts` in the `src/entities` directory.
+
+```bash
+mkdir src/entities
+touch src/entities/blog.entity.ts
+```
+
+Add the following code to `blog.entity.ts`:
+
+```typescript
+import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+
+@Entity()
+export class Blog {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  title: string;
+
+  @Column()
+  content: string;
+}
+```
+
+2. Update `typeormConfig.ts`
+
+Add the following code to `typeormConfig.ts`:
+
+```typescript
+import { join } from "path";
+
+export const typeOrmConfig: TypeOrmModuleOptions = {
+  ...dataSourceOptions,
+  autoLoadEntities: true,
+  synchronize: (process.env.DB_SYNCHRONIZE ?? "false") === "true"
+};
+```
+
+3. Update `app.module.ts`
+
+Add the following code to `app.module.ts`:
+
+```typescript
+import { Module } from "@nestjs/common";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { typeOrmConfig } from "./database/typeormConfig";
+import { Blog } from "./entities/blog.entity";
+
+@Module({
+  imports: [
+    TypeOrmModule.forRoot(typeOrmConfig),
+    TypeOrmModule.forFeature([Blog])
+  ],
+  controllers: [],
+  providers: []
+})
+export class AppModule {}
+```

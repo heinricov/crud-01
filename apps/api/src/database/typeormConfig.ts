@@ -10,8 +10,8 @@ export const dataSourceOptions: DataSourceOptions = {
   username: process.env.DB_USERNAME ?? 'postgres',
   password: process.env.DB_PASSWORD ?? 'postgres',
   database: process.env.DB_NAME ?? 'postgres',
-  entities: [join(__dirname, '..', '**', '*.entity.{ts,js}')],
   migrations: [join(__dirname, 'migrations', '*.{ts,js}')],
+  entities: [join(__dirname, '..', '**', '*.entity.{ts,js}')],
   synchronize: false,
 };
 
