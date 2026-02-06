@@ -949,3 +949,372 @@ export function BlogSection() {
 }
 
 ```
+
+## WEB : Post Setup
+
+1. buat file `components/blog-form.tsx` untuk membuat form post blog
+
+```bash
+touch components/blog-form.tsx
+```
+
+```typescript
+'use client'
+
+import React from "react"
+
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+
+interface BlogFormProps {
+  onSubmit: (data: { title: string; content: string }) => void
+  isLoading?: boolean
+}
+
+export function BlogForm({ onSubmit, isLoading = false }: BlogFormProps) {
+  const [title, setTitle] = useState('')
+  const [content, setContent] = useState('')
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!title.trim() || !content.trim()) {
+      alert('Judul dan content tidak boleh kosong')
+      return
+    }
+
+    onSubmit({ title, content })
+    setTitle('')
+    setContent('')
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="bg-card border border-border rounded-lg p-6 shadow-sm"
+    >
+      <h3 className="text-2xl font-bold text-foreground mb-6">Buat Blog Baru</h3>
+
+      <div className="mb-4">
+        <label htmlFor="title" className="block text-sm font-medium text-foreground mb-2">
+          Judul
+        </label>
+        <input
+          id="title"
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Masukkan judul blog..."
+          className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          disabled={isLoading}
+        />
+      </div>
+
+      <div className="mb-6">
+        <label htmlFor="content" className="block text-sm font-medium text-foreground mb-2">
+          Konten
+        </label>
+        <textarea
+          id="content"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="Masukkan konten blog..."
+          rows={6}
+          className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+          disabled={isLoading}
+        />
+      </div>
+
+      <Button type="submit" disabled={isLoading} className="w-full">
+        {isLoading ? 'Menyimpan...' : 'Simpan Blog'}
+      </Button>
+    </form>
+  )
+}
+```
+
+2. Buat file `components/blog-table.tsx` untuk membuat tabel blog
+
+```bash
+touch components/blog-table.tsx
+```
+
+```typescript
+'use client'
+
+import React from "react"
+
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+
+interface BlogPost {
+  id: string
+  title: string
+  content: string
+  date: string
+}
+
+interface BlogTableProps {
+  posts: BlogPost[]
+}
+
+export function BlogTable({ posts }: BlogTableProps) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-border">
+        <thead className="bg-muted">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Judul
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Konten
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Tanggal
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-background">
+          {posts.map((post) => (
+            <tr key={post.id} className="border-b border-border">
+              <td className="px-6 py-4 text-sm text-foreground">
+                {post.title}
+              </td>
+              <td className="px-6 py-4 text-sm text-foreground">
+                {post.content}
+              </td>
+              <td className="px-6 py-4 text-sm text-muted-foreground">
+                {post.date}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+```
+
+3. Buat File `components/post-section.tsx` untuk membuat section post blog
+
+```bash
+touch components/post-section.tsx
+```
+
+```typescript
+"use client";
+
+import { useEffect, useState } from "react";
+import { BlogForm } from "./blog-form";
+import { BlogTable } from "./blog-table";
+import { blogService, type Blog } from "../services/blog-service";
+import { Button } from "@workspace/ui/components/button";
+
+interface BlogPost {
+  id: string;
+  title: string;
+  content: string;
+  date: string;
+}
+
+interface PostSectionProps {
+  initialPosts?: BlogPost[];
+}
+
+export function PostSection({ initialPosts = [] }: PostSectionProps) {
+  const [posts, setPosts] = useState<BlogPost[]>(initialPosts);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const mapToView = (b: Blog): BlogPost => ({
+    id: String(b.id),
+    title: b.title,
+    content: b.content,
+    date: new Date(b.createdAt).toLocaleDateString("id-ID", {
+      year: "numeric",
+      month: "long",
+      day: "numeric"
+    })
+  });
+
+  useEffect(() => {
+    setIsLoading(true);
+    blogService
+      .getAll()
+      .then((res) => {
+        setPosts(res.data.map(mapToView));
+      })
+      .catch((e) => {
+        setError(e.message ?? "Gagal memuat data");
+      })
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  const handleAddPost = async (data: { title: string; content: string }) => {
+    setIsLoading(true);
+    try {
+      const res = await blogService.create({
+        title: data.title,
+        content: data.content
+      });
+      setPosts([mapToView(res.data), ...posts]);
+      alert("Blog berhasil ditambahkan!");
+    } catch (error) {
+      alert("Gagal menambahkan blog");
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeletePost = (id: string) => {
+    setIsLoading(true);
+    blogService
+      .deleteById(Number(id))
+      .then(() => {
+        setPosts((prevPosts) => prevPosts.filter((post) => post.id !== id));
+      })
+      .catch((e) => {
+        alert("Gagal menghapus blog");
+        console.error(e);
+      })
+      .finally(() => setIsLoading(false));
+  };
+
+  const handleEditPost = (post: BlogPost) => {
+    const title = prompt("Ubah judul:", post.title) ?? post.title;
+    const content = prompt("Ubah konten:", post.content) ?? post.content;
+    setIsLoading(true);
+    blogService
+      .update(Number(post.id), { title, content })
+      .then((res) => {
+        const updated = mapToView(res.data);
+        setPosts((prev) => prev.map((p) => (p.id === post.id ? updated : p)));
+        alert("Blog berhasil diperbarui!");
+      })
+      .catch((e) => {
+        alert("Gagal memperbarui blog");
+        console.error(e);
+      })
+      .finally(() => setIsLoading(false));
+  };
+
+  const handleDeleteAll = () => {
+    if (!confirm("Anda yakin ingin menghapus semua blog?")) return;
+    setIsLoading(true);
+    blogService
+      .deleteAll()
+      .then(() => {
+        setPosts([]);
+        alert("Semua blog berhasil dihapus!");
+      })
+      .catch((e) => {
+        alert("Gagal menghapus semua blog");
+        console.error(e);
+      })
+      .finally(() => setIsLoading(false));
+  };
+
+  return (
+    <section className="py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground mb-12">
+          Kelola Blog
+        </h1>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+          <div className="lg:col-span-1">
+            <BlogForm onSubmit={handleAddPost} isLoading={isLoading} />
+          </div>
+
+          <div className="lg:col-span-2">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-muted-foreground">
+                {error ? `Error: ${error}` : ""}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteAll}
+                  disabled={isLoading}
+                >
+                  Hapus Semua
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsLoading(true);
+                    blogService
+                      .getAll()
+                      .then((res) => setPosts(res.data.map(mapToView)))
+                      .finally(() => setIsLoading(false));
+                  }}
+                  disabled={isLoading}
+                >
+                  Muat Ulang
+                </Button>
+              </div>
+            </div>
+            <BlogTable
+              posts={posts}
+              onDelete={handleDeletePost}
+              onEdit={handleEditPost}
+              isLoading={isLoading}
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+```
+
+4. Buat halaman `/posts` untuk menampilkan semua blog post
+
+```bash
+mkdir -p app/posts
+touch app/posts/page.tsx
+```
+
+```typescript
+import { PostSection } from '@/components/post-section'
+
+export const metadata = {
+  title: 'Kelola Blog | v0 App',
+  description: 'Halaman untuk membuat, mengedit, dan menghapus blog posts',
+}
+
+export default function PostsPage() {
+  const initialPosts = [
+    {
+      id: '1',
+      title: 'Memulai dengan Next.js 16',
+      content:
+        'Pelajari cara memulai project Next.js 16 dengan fitur-fitur terbaru termasuk Turbopack, React Compiler, dan peningkatan performa yang signifikan.',
+      date: '15 Januari 2025',
+    },
+    {
+      id: '2',
+      title: 'Best Practices Tailwind CSS',
+      content:
+        'Pahami best practices menggunakan Tailwind CSS untuk membuat design system yang konsisten dan maintainable di project React Anda.',
+      date: '10 Januari 2025',
+    },
+    {
+      id: '3',
+      title: 'Authentication dengan NextAuth',
+      content:
+        'Panduan lengkap mengimplementasikan authentication yang aman menggunakan NextAuth.js dan database modern seperti Supabase.',
+      date: '5 Januari 2025',
+    },
+  ]
+
+  return (
+    <main className="min-h-screen bg-background">
+      <PostSection initialPosts={initialPosts} />
+    </main>
+  )
+}
+```
