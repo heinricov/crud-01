@@ -1318,3 +1318,32 @@ export default function PostsPage() {
   )
 }
 ```
+
+## (OPTIONAL) WEB : Navigasi
+
+1. buat file `components/navbar.tsx`
+
+```bash
+touch components/navbar.tsx
+```
+
+2. Panggil `components/navbar.tsx` di `app/layout.tsx`
+
+```typescript
+import { Navbar } from '@/components/navbar'
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body className={inter.className}>
+        <Navbar />
+        {children}
+      </body>
+    </html>
+  )
+}
+```
