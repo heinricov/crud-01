@@ -10,4 +10,10 @@ export class Blog {
 
   @Column()
   content: string;
+
+  @Column()
+  createdAt: Date;
+
+  @Column()
+  updatedAt: Date;
 }
