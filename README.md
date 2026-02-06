@@ -272,7 +272,206 @@ nest g resource blog --no-spec
 rm -rf src/blog/entities
 ```
 
-2. Update `blog.module.ts`
+2. Update `create-blog.dto.ts`
+
+Add the following code to `create-blog.dto.ts`:
+
+```typescript
+export class CreateBlogDto {
+  title: string;
+  content: string;
+}
+```
+
+3. Update `blog.controller.ts`
+
+Add the following code to `blog.controller.ts`:
+
+```typescript
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post
+} from "@nestjs/common";
+import { BlogService } from "./blog.service";
+import { CreateBlogDto } from "./dto/create-blog.dto";
+import { UpdateBlogDto } from "./dto/update-blog.dto";
+
+@Controller("blogs")
+export class BlogController {
+  constructor(private readonly blogService: BlogService) {}
+
+  @Get()
+  async findAll() {
+    const items = await this.blogService.findAll();
+    const lastUpdated =
+      items.length > 0
+        ? new Date(
+            Math.max(
+              ...items.map((b) =>
+                new Date(b.updatedAt ?? b.createdAt).getTime()
+              )
+            )
+          ).toISOString()
+        : null;
+    return {
+      statusCode: 200,
+      message: "OK",
+      count: items.length,
+      updatedAt: lastUpdated,
+      date: new Date().toISOString(),
+      data: items.map((b) => ({
+        id: b.id,
+        title: b.title,
+        content: b.content,
+        createdAt: b.createdAt,
+        updatedAt: b.updatedAt
+      }))
+    };
+  }
+
+  @Get(":id")
+  async findOne(@Param("id") id: string) {
+    const b = await this.blogService.findOne(Number(id));
+    return {
+      statusCode: 200,
+      message: "OK",
+      date: new Date().toISOString(),
+      data: {
+        id: b.id,
+        title: b.title,
+        content: b.content,
+        createdAt: b.createdAt,
+        updatedAt: b.updatedAt
+      }
+    };
+  }
+
+  @Post()
+  async create(@Body() dto: CreateBlogDto) {
+    const b = await this.blogService.create(dto);
+    return {
+      statusCode: 201,
+      message: "Blog dibuat",
+      date: new Date().toISOString(),
+      data: {
+        id: b.id,
+        title: b.title,
+        content: b.content,
+        createdAt: b.createdAt,
+        updatedAt: b.updatedAt
+      }
+    };
+  }
+
+  @Patch(":id")
+  async update(@Param("id") id: string, @Body() dto: UpdateBlogDto) {
+    const b = await this.blogService.update(Number(id), dto);
+    return {
+      statusCode: 200,
+      message: "Blog diperbarui",
+      date: new Date().toISOString(),
+      data: {
+        id: b.id,
+        title: b.title,
+        content: b.content,
+        createdAt: b.createdAt,
+        updatedAt: b.updatedAt
+      }
+    };
+  }
+
+  @Delete(":id")
+  async remove(@Param("id") id: string) {
+    await this.blogService.remove(Number(id));
+    return {
+      statusCode: 200,
+      message: "Blog dihapus",
+      date: new Date().toISOString(),
+      data: { id: Number(id) }
+    };
+  }
+
+  @Delete()
+  async removeAll() {
+    const affected = await this.blogService.removeAll();
+    return {
+      statusCode: 200,
+      message: "Semua blog dihapus",
+      date: new Date().toISOString(),
+      count: affected
+    };
+  }
+}
+```
+
+4. Update `blog.service.ts`
+
+Add the following code to `blog.service.ts`:
+
+```typescript
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Blog } from "../entities/blog.entity";
+import { CreateBlogDto } from "./dto/create-blog.dto";
+import { UpdateBlogDto } from "./dto/update-blog.dto";
+
+@Injectable()
+export class BlogService {
+  constructor(
+    @InjectRepository(Blog)
+    private readonly blogRepository: Repository<Blog>
+  ) {}
+
+  async findAll(): Promise<Blog[]> {
+    return this.blogRepository.find();
+  }
+
+  async findOne(id: number): Promise<Blog> {
+    const blog = await this.blogRepository.findOne({ where: { id } });
+    if (!blog) {
+      throw new NotFoundException("Blog tidak ditemukan");
+    }
+    return blog;
+  }
+
+  async create(dto: CreateBlogDto): Promise<Blog> {
+    const entity = this.blogRepository.create({
+      title: dto.title,
+      content: dto.content
+    });
+    return this.blogRepository.save(entity);
+  }
+
+  async update(id: number, dto: UpdateBlogDto): Promise<Blog> {
+    const blog = await this.findOne(id);
+    blog.title = dto.title ?? blog.title;
+    blog.content = dto.content ?? blog.content;
+    return this.blogRepository.save(blog);
+  }
+
+  async remove(id: number): Promise<void> {
+    const blog = await this.findOne(id);
+    await this.blogRepository.remove(blog);
+  }
+
+  async removeAll(): Promise<number> {
+    const res = await this.blogRepository
+      .createQueryBuilder()
+      .delete()
+      .from(Blog)
+      .execute();
+    return res.affected ?? 0;
+  }
+}
+```
+
+5. Update `blog.module.ts`
 
 Add the following code to `blog.module.ts`:
 
@@ -281,7 +480,7 @@ import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { BlogController } from "./blog.controller";
 import { BlogService } from "./blog.service";
-import { Blog } from "./entities/blog.entity";
+import { Blog } from "../entities/blog.entity";
 
 @Module({
   imports: [TypeOrmModule.forFeature([Blog])],
@@ -291,15 +490,51 @@ import { Blog } from "./entities/blog.entity";
 export class BlogModule {}
 ```
 
-3. Update `blog.controller.ts`
+## API : Setup Swagger
 
-Add the following code to `blog.controller.ts`:
+1. Instal paket Swagger untuk Nest.js
+
+```bash
+cd apps/api
+pnpm add @nestjs/swagger swagger-ui-express
+```
+
+2. Aktifkan Swagger di `main.ts`
+
+```typescript
+import "dotenv/config";
+import "reflect-metadata";
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
+import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
+
+async function bootstrap() {
+  const port = Number(process.env.PORT ?? 4000);
+  const app = await NestFactory.create(AppModule);
+
+  const config = new DocumentBuilder()
+    .setTitle("CRUD API")
+    .setDescription("Dokumentasi API Blog")
+    .setVersion("1.0.0")
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup("docs", app, document);
+
+  await app.listen(port);
+  console.log(`your aplikasi runing in http://localhost:${port}`);
+}
+void bootstrap();
+```
+
+3. (Opsional) Tambahkan tag pada controller
 
 ```typescript
 import { Controller, Get } from "@nestjs/common";
+import { ApiTags } from "@nestjs/swagger";
 import { BlogService } from "./blog.service";
 
-@Controller("blog")
+@ApiTags("blogs")
+@Controller("blogs")
 export class BlogController {
   constructor(private readonly blogService: BlogService) {}
 
@@ -310,25 +545,9 @@ export class BlogController {
 }
 ```
 
-4. Update `blog.service.ts`
+4. Jalankan aplikasi dan akses dokumentasi
 
-Add the following code to `blog.service.ts`:
-
-```typescript
-import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { Blog } from "./entities/blog.entity";
-
-@Injectable()
-export class BlogService {
-  constructor(
-    @InjectRepository(Blog)
-    private readonly blogRepository: Repository<Blog>
-  ) {}
-
-  findAll() {
-    return this.blogRepository.find();
-  }
-}
+```bash
+pnpm run start:dev
+# Buka http://localhost:4000/docs
 ```
