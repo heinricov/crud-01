@@ -3,6 +3,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { typeOrmConfig } from './database/typeormConfig';
 import { Blog } from './entities/blog.entity';
 import { BlogModule } from './blog/blog.module';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -10,7 +12,7 @@ import { BlogModule } from './blog/blog.module';
     TypeOrmModule.forFeature([Blog]),
     BlogModule,
   ],
-  controllers: [],
-  providers: [],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}
