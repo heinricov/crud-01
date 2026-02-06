@@ -603,3 +603,160 @@ void bootstrap();
 - Masukkan URL `http://localhost:4000/blogs`
 - Klik `Send`
 - Periksa apakah request berhasil dan menerima response
+
+## WEB : Setup UI component
+
+masuk ke folder `apps/web`
+
+```bash
+cd apps/web
+```
+
+1. Install Component Shadcn
+
+```bash
+pnpm dlx shadcn@latest add card
+```
+
+2. Buat component `components/blog-card.tsx`
+
+```bash
+touch components/blog-card.tsx
+```
+
+```typescript
+"use client";
+
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle
+} from "@workspace/ui/components/card";
+
+interface BlogCardProps {
+  title: string;
+  content: string;
+  date: string;
+}
+
+export function BlogCard({ title, content, date }: BlogCardProps) {
+  return (
+    <Card className="h-full flex flex-col hover:shadow-lg transition-shadow">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg line-clamp-2">{title}</CardTitle>
+        <p className="text-sm text-muted-foreground mt-2">{date}</p>
+      </CardHeader>
+      <CardContent className="grow">
+        <p className="text-sm text-foreground line-clamp-3">{content}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+```
+
+3. Buat component `components/blog-section.tsx`
+
+```bash
+touch components/blog-section.tsx
+```
+
+```typescript
+"use client";
+
+import { BlogCard } from "./blog-card";
+
+interface BlogPost {
+  id: string;
+  title: string;
+  content: string;
+  date: string;
+}
+
+const blogPosts: BlogPost[] = [
+  {
+    id: "1",
+    title: "Memulai dengan Next.js 16",
+    content:
+      "Pelajari cara memulai project Next.js 16 dengan fitur-fitur terbaru termasuk Turbopack, React Compiler, dan peningkatan performa yang signifikan.",
+    date: "15 Januari 2025"
+  },
+  {
+    id: "2",
+    title: "Best Practices Tailwind CSS",
+    content:
+      "Pahami best practices menggunakan Tailwind CSS untuk membuat design system yang konsisten dan maintainable di project React Anda.",
+    date: "10 Januari 2025"
+  },
+  {
+    id: "3",
+    title: "Authentication dengan NextAuth",
+    content:
+      "Panduan lengkap mengimplementasikan authentication yang aman menggunakan NextAuth.js dan database modern seperti Supabase.",
+    date: "5 Januari 2025"
+  },
+  {
+    id: "4",
+    title: "Server Components vs Client Components",
+    content:
+      "Pelajari perbedaan antara Server Components dan Client Components di Next.js 16 dan bagaimana memilih yang tepat untuk use case Anda.",
+    date: "1 Januari 2025"
+  }
+];
+
+export function BlogSection() {
+  return (
+    <section className="py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-12">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-4">
+            Blog
+          </h2>
+          <p className="text-lg text-muted-foreground">
+            Content dibawah di ambil dari API yang sudah di buat di project ini.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {blogPosts.map((post) => (
+            <BlogCard
+              key={post.id}
+              title={post.title}
+              content={post.content}
+              date={post.date}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+```
+
+4. Update `page.tsx`
+
+```bash
+touch pages/index.tsx
+```
+
+```typescript
+import { BlogSection } from "@/components/blog-section";
+
+export default function Page() {
+  return (
+    <main className="min-h-screen bg-background">
+      <BlogSection />
+    </main>
+  );
+}
+
+```
+
+5. Test RUN aplikasi
+
+- Buka terminal
+- Masuk ke folder `apps/web`
+- Jalankan aplikasi dengan perintah `pnpm run dev`
+- Buka browser dan akses `http://localhost:3000`
+- Periksa apakah halaman blog ditampilkan dengan benar
